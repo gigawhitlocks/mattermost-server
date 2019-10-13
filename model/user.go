@@ -5,6 +5,7 @@ package model
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -352,7 +353,9 @@ func (u *User) PreSave() {
 		u.Timezone = timezones.DefaultUserTimezone()
 	}
 
-	if len(u.Password) > 0 {
+	if len(u.Password) > 0 && strings.HasPrefix(u.Password, "$RC:") {
+		u.Password = strings.TrimPrefix(u.Password, "$RC:")
+	} else if len(u.Password) > 0 {
 		u.Password = HashPassword(u.Password)
 	}
 }
@@ -712,6 +715,19 @@ func ComparePassword(hash string, password string) bool {
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err == nil {
+		return true
+	}
+
+	// Try RocketChat password. They SHA256 the typed password before sending it over.
+	rc_client_hash := sha256.New()
+	rc_client_hash.Write([]byte(password))
+	rc_client_password := hex.EncodeToString(rc_client_hash.Sum(nil))
+
+	err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(rc_client_password))
+
+	// TODO: after RC hash is verified, re-hash password and save.
+
 	return err == nil
 }
 
