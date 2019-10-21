@@ -947,7 +947,7 @@ func (a *App) ImportAttachment(data *AttachmentImportData, post *model.Post, tea
 
 		if err != nil {
 			mlog.Error("Failed to upload file:", mlog.Err(err))
-			return nil, err
+			return nil, nil
 		}
 
 		a.HandleImages([]string{fileInfo.PreviewPath}, []string{fileInfo.ThumbnailPath}, [][]byte{buf.Bytes()})
